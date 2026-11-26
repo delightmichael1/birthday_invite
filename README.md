@@ -33,6 +33,38 @@ npm start              # serves dist/ + /api on PORT (default 4000)
 Deploy to Render, Railway, Fly.io, or a VPS — set `MONGODB_URI` and
 `ADMIN_KEY` as environment variables.
 
+### Cloudflare Pages + Workers
+
+Cloudflare Pages hosts the static frontend. Deploy the edge API as a Worker
+from this repo:
+
+```bash
+npm run deploy:worker
+npx wrangler secret put MONGODB_URI
+npx wrangler secret put ADMIN_KEY
+```
+
+`wrangler.jsonc` deploys `worker.js` as `pastor-api` and gives you a
+`*.workers.dev` URL. Set this Pages environment variable to that origin:
+
+```text
+API_ORIGIN=https://pastor-api.<your-subdomain>.workers.dev
+```
+
+Use the API origin only — do not include `/api`. The Pages Function in
+`functions/api/[[path]].js` proxies `/api/*` requests to that origin.
+
+Pages settings:
+
+```text
+Build command: npm run build
+Build output directory: dist
+Root directory: /
+```
+
+If you prefer not to use Workers, deploy `server/index.js` to Render,
+Railway, Fly.io, or a VPS and set `API_ORIGIN` to that host instead.
+
 ## MongoDB Atlas setup
 
 1. Create a free cluster at https://cloud.mongodb.com
