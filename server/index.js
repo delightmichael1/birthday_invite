@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import mongoose from 'mongoose'
 import { Rsvp } from './models/Rsvp.js'
+import { isRsvpDeadlinePassed } from '../src/config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = process.env.PORT || 4000
@@ -18,6 +19,10 @@ app.use(express.json({ limit: '100kb' }))
 
 app.post('/api/rsvp', async (req, res) => {
   const { name, email, phone, attendance, guests, message } = req.body || {}
+
+  if (isRsvpDeadlinePassed()) {
+    return res.status(403).json({ error: 'rsvp deadline has passed' })
+  }
 
   if (!name?.trim() || !email?.trim() || !phone?.trim()) {
     return res.status(400).json({ error: 'name, email and phone are required' })

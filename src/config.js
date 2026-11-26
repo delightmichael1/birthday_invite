@@ -11,9 +11,12 @@ export const event = {
   venue: "BloomingDeck Restaurant",
   address: "Lot 2 Small Holding, Gweru",
   dresscode: "Bring a touch of class to the table",
-  rsvpDeadline: "Kindly respond as soon as possible",
+  rsvpDeadline: "Kindly respond by Wednesday, 2 December 2026",
+  rsvpDeadlineLabel: "Wednesday, 2 December 2026",
+  rsvpDeadlineDate: "2026-12-02",
+  rsvpDeadlineTimezone: "Africa/Harare",
   paymentDeadline:
-    "Payment needed by Tuesday, 2 December to secure venue and logistics",
+    "Payment needed by Wednesday, 2 December to secure venue and logistics",
   paymentNote:
     "Due to venue restrictions, no payments will be accepted on the day. Table reservations are done in advance.",
 };
@@ -24,3 +27,25 @@ export const payment = {
   feePerHead: 35,
   currency: "USD",
 };
+
+function dateKeyInTimezone(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(
+    parts
+      .filter(({ type }) => type !== "literal")
+      .map(({ type, value }) => [type, value]),
+  );
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export function isRsvpDeadlinePassed(now = new Date()) {
+  return (
+    dateKeyInTimezone(now, event.rsvpDeadlineTimezone) >
+    event.rsvpDeadlineDate
+  );
+}

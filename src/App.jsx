@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CalendarBlank, Clock, MapPin, CheckCircle, WarningCircle, ArrowDown, TShirt, CurrencyDollar, Info } from '@phosphor-icons/react'
-import { event, payment } from './config'
+import { event, isRsvpDeadlinePassed, payment } from './config'
 import Admin from './Admin.jsx'
 
 const RSVP_URL = '/api/rsvp'
@@ -21,12 +21,24 @@ function Field({ label, required, error, children }) {
   )
 }
 
+function RsvpClosedNotice() {
+  return (
+    <div className="rise-in rounded-2xl border border-forest-800/15 bg-white p-10 text-center shadow-sm">
+      <Clock size={48} weight="duotone" className="mx-auto text-forest-700" />
+      <h3 className="mt-4 font-serif text-3xl font-semibold text-forest-950">RSVP closed</h3>
+      <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-ink/70">
+        The RSVP deadline was {event.rsvpDeadlineLabel}. Thank you for your interest in celebrating with us.
+      </p>
+    </div>
+  )
+}
+
 function RsvpForm() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', attendance: '', guests: '1', message: '',
   })
   const [errors, setErrors] = useState({})
-  const [status, setStatus] = useState('idle') // idle | submitting | success | error
+  const [status, setStatus] = useState('idle') // idle | submitting | success | closed | error
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
@@ -51,12 +63,21 @@ function RsvpForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, guests: Number(form.guests) || 1 }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        if (res.status === 403 && body.error === 'rsvp deadline has passed') {
+          setStatus('closed')
+          return
+        }
+        throw new Error()
+      }
       setStatus('success')
     } catch {
       setStatus('error')
     }
   }
+
+  if (status === 'closed') return <RsvpClosedNotice />
 
   if (status === 'success') {
     return (
@@ -99,7 +120,7 @@ function RsvpForm() {
           </select>
         </Field>
       </div>
-
+            <div className="mt-5"/>
       <Field label="Will you be attending?" required error={errors.attendance}>
         <div className="mt-1 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Attendance">
           {['Yes', 'No', 'Maybe'].map((opt) => (
@@ -120,7 +141,7 @@ function RsvpForm() {
           ))}
         </div>
       </Field>
-
+<div className="mt-5"/>
       <Field label="A word of blessing or message (optional)">
         <textarea
           className={`${inputCls} min-h-[96px] resize-y`}
@@ -249,7 +270,7 @@ function RsvpSection() {
         </p>
       </div>
       <div className="mt-10">
-        <RsvpForm />
+        {isRsvpDeadlinePassed() ? <RsvpClosedNotice /> : <RsvpForm />}
       </div>
       {payment.enabled && (
         <p className="mt-6 text-center text-sm font-medium text-forest-800">
